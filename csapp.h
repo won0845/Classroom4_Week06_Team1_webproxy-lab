@@ -51,6 +51,17 @@ typedef struct {
 } rio_t;
 /* $end rio_t */
 
+// struct addrinfo {
+//     int ai_flags; 
+//     int ai_family;
+//     int ai_socktype;
+//     int ai_protocol;
+//     char *ai_canonname;
+//     size_t ai_addrlen;
+//     struct sockaddr *ai_addr;
+//     struct addrinfo *ai_next;
+// };
+
 /* External variables */
 extern int h_errno;    /* Defined by BIND for DNS errors */ 
 extern char **environ; /* Defined by libc */
