@@ -139,43 +139,50 @@ void clienterror(int fd, char *cause, char *errnum, char *shortmsg, char *longms
 }
 
 void read_requesthdrs(rio_t *rp)
-{
+{ // HTTP 요청 헤더를 읽고, 터미널에 출력하는 함수
   char buf[MAXLINE];
-
-  Rio_readlineb(rp, buf, MAXLINE);
-  while (strcmp(buf, "\r\n"))
-  {
+  do {
     Rio_readlineb(rp, buf, MAXLINE);
     printf("%s", buf);
-  }
+  } while (strcmp(buf, "\r\n"));
   return;
 }
 
 int parse_uri(char *uri, char *filename, char *cgiargs)
-{
+{ 
+  // char *uri: 분석할 URI
+  // char *filename: 분석된 결과, 요청된 파일의 경로와 이름을 저장할 변수의 주소
+  // char *cgiargs: 동적 콘텐츠를 요청할 때 사용될 CGI 인자를 저장할 변수의 주소
   char *ptr;
+
   if (!strstr(uri, "cgi-bin"))
   { /* Static content */
-    strcpy(cgiargs, "");
-    strcpy(filename, ".");
-    strcat(filename, uri);
-    if (uri[strlen(uri) - 1] == '/')
-      strcat(filename, "home.html");
-    return 1;
+    // cgi-bin가 uri에 없는 경우
+    // 정적 콘텐츠 처리의 경우
+    
+    strcpy(cgiargs, "");              // cgiargs 는 빈 문자열로 설정,
+    strcpy(filename, ".");            // filename은 현재 디렉토리로 시작 URI가 추가
+    strcat(filename, uri);            // 
+    if (uri[strlen(uri) - 1] == '/')  // URI가 슬래시("/")로 끝난다면, 
+      strcat(filename, "home.html");  // 기본 파일 이름으로 "home.html"이 filename에 추가
+    return 1;                         // 정적 콘텐츠를 나타내는 1을 반환
   }
   else
   { /* Dynamic content */
-    ptr = index(uri, '?');
-    if (ptr)
+    // 동적 콘텐츠의 경우
+    // 
+    ptr = index(uri, '?');        // URI 내에서 '?' 문자를 검색하여, CGI 인자의 시작을 찾는다.
+    if (ptr)                      // ?가 있다면 
     {
-      strcpy(cgiargs, ptr + 1);
-      *ptr = '\0';
+      strcpy(cgiargs, ptr + 1);   // ? 이후의 모든 문자열은 CGI 인자(cgiargs)로 복사되고,
+      *ptr = '\0';                // ?를 문자열 종료 문자로 변결하여  URI를 CGI 스크립트 경로와 인자로 분리한다.
     }
     else
-      strcpy(cgiargs, "");
-    strcpy(filename, ".");
-    strcat(filename, uri);
-    return 0;
+      strcpy(cgiargs, "");        // ? 가 없으면 cgiargs는 빈문자로 설정된다.
+      
+    strcpy(filename, ".");        // filename은 현재 디렉토리(.)로 시작한뒤
+    strcat(filename, uri);        // URI 추가
+    return 0;                     // 동적 콘텐츠를 나타내는 0을 반환한다.
   }
 }
 
@@ -216,20 +223,30 @@ void serve_static(int fd, char *filename, int filesize)
  */
 void get_filetype(char *filename, char *filetype)
 {
+  // 주어진 파일 이름(filename)을 분석하여 파일의 MIME 타입을 결정하고, 이를 filetype 변수에 저장
   if (strstr(filename, ".html"))
-    strcpy(filetype, "text/html");
+    strcpy(filetype, "text/html");  
+    // 파일 이름에 .html 확장자가 포함되어 있으면, filetype을 "text/html"로 설정
   else if (strstr(filename, ".gif"))
     strcpy(filetype, "image/gif");
+    // 파일 이름에 .gif 확장자가 있으면, filetype을 "image/gif"로 설정
   else if (strstr(filename, ".png"))
     strcpy(filetype, "image/png");
+    // 파일 이름에 .png 확장자가 포함되어 있으면, filetype을 "image/png"로 설정
   else if (strstr(filename, ".jpg"))
     strcpy(filetype, "image/jpeg");
+    // 파일 이름에 .jpg 확장자가 있으면, filetype을 "image/jpeg"로 설정
   else
     strcpy(filetype, "text/plain");
+    // 위의 조건에 해당하지 않는 모든 파일에 대해서는 filetype을 "text/plain"으로 설정
 }
 
 void serve_dynamic(int fd, char *filename, char *cgiargs)
 {
+  // 동적 컨텐츠를 클라이언트에게 제공하는 데 사용
+  // fd 클라이언트의 파일 디스크립터
+  // filename 실행할 CGI프로그램의 파일 이름
+  // cgiargs CGI 프로그램에 전달할 인자
   char buf[MAXLINE], *emptylist[] = {NULL};
 
   /* Return first part of HTTP response */
@@ -237,6 +254,11 @@ void serve_dynamic(int fd, char *filename, char *cgiargs)
   Rio_writen(fd, buf, strlen(buf));
   sprintf(buf, "Server: Tiny Web Server\r\n");
   Rio_writen(fd, buf, strlen(buf));
+  /* 
+  클라이언트에게 HTTP 응답의 첫 부분을 전송한다. 
+  200 OK와 같은상태 메시지와 서버 정보를 포함하는 기본 HTTP 헤더이다.
+  이 단계는 클라이언트에게 요청이 성공적으로 수신되었음을 알린다.
+  */ 
 
   if (Fork() == 0)
   { /* Child */
@@ -245,5 +267,24 @@ void serve_dynamic(int fd, char *filename, char *cgiargs)
     Dup2(fd, STDOUT_FILENO);              /* Redirect stdout to client */
     Execve(filename, emptylist, environ); /* Run CGI program */
   }
+  /*
+  Fork 시스템을 호출해서 새로운 자식 프로세스를 생성한다.
+  자식 프로세스에서는 setenv 함수를 호출해서 QUERY_STRING 환경 변수를 설정한다.
+  환경 변수에는 CGI 프로그램에 전달할 인자(cgiargs) 가 저장된다.
+  CGI 프로그램이 클라이언트로 부터 받은 요청 정보를 처리하는데 사용된다
+
+  Dup2(fd, STDOUT_FILENO)를 호출하여 자식 프로세스의 
+  표준 출력을 클라이언트의 소켓 파일 디스크립터로 리다이렉션한다.
+  CGI 프로그램의 출력이 직접 클라이언트로 전송된다.
+
+  Execve 함수를 사용하여 CGI 프로그램을 실행한다.
+  filename은 실행할 프로그램의 경로이며
+  emptylist는 프로그램에 전달될 인자 배열(이 경우 인자가 없음)
+  environ은 현재 환경 변수를 전달한다.
+  */
   Wait(NULL); /* Parent waits for and reaps child */
+
+  // Wait(NULL) 호출을 통해 부모 프로세스는 자식 프로세스의 실행이 
+  // 완료될 때까지 대기하고, 자식 프로세스가 종료되면 이를 회수(리핑)한다.
+  // 이는 자식 프로세스가 생성한 모든 리소스가 제대로 정리되고, 좀비 프로세스가 발생하지 않도록 한다.
 }
