@@ -198,6 +198,25 @@ void serve_static(int fd, char *filename, int filesize, char *method)
   printf("Response headers:\n");    // 서버 콘솔에 응답헤더 출력
   printf("%s", buf);
 
+  // /* Send response body to client */
+  // srcfd = Open(filename, O_RDONLY, 0);                        // 파일을 읽기 위해 Open함수를 사용하여 filename을 연다.
+  //                                                             // O_RDONLY 플래그는 파일을 읽기 전용 모드로 열겠다는 것을 의미한다.
+  // srcp = Mmap(0, filesize, PROT_READ, MAP_PRIVATE, srcfd, 0); // Mmap 함수를 이용해서 파일을 메모리에 매핑한다.
+  //                                                             // 파일의 내용을 메모리 주소공간에 매핑하여 파일I/O를 통해
+  //                                                             // 데이터를 읽는 대신 메모리 접근을 통해서 데이터를 빠르게 처리할 수 있게 해준다.
+  //                                                             // PROT_READ는 매핑된 메모리 영역이 읽기 가능함을 나타낸다.
+  //                                                             // MAP_PRIVATE는 매핑이 비공유임을 나타낸다.
+  // Close(srcfd);                                               // 파일 디스크럽터는 더 이상 필요하지 않으므로 Close를 호출하여 닫는다.
+  // Rio_writen(fd, srcp, filesize);                             // Rio_writen함수를 이용해서 매핑된 파일의 내용을 클라이언트에게 전송한다.
+  // Munmap(srcp, filesize);                                     // 메모리 매핑 해제
+
+  srcfd = Open(filename, O_RDONLY, 0);
+  srcp = malloc(filesize);
+  Rio_readn(srcfd, srcp, filesize);
+  Close(srcfd);
+  Rio_writen(fd, srcp, filesize);
+  free(srcp);
+
   if (strcasecmp(method, "GET") == 0)
   {
     /* Send response body to client */
@@ -232,6 +251,9 @@ void get_filetype(char *filename, char *filetype)
   else if (strstr(filename, ".jpg"))
     strcpy(filetype, "image/jpeg");
   // 파일 이름에 .jpg 확장자가 있으면, filetype을 "image/jpeg"로 설정
+  else if (strstr(filename, ".mp4"))
+    strcpy(filetype, "video/mp4");
+  // 파일 이름에 .mp4 확장자가 있으면, filetype을 "video/mp4"로 설정
   else
     strcpy(filetype, "text/plain");
   // 위의 조건에 해당하지 않는 모든 파일에 대해서는 filetype을 "text/plain"으로 설정
