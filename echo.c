@@ -14,5 +14,6 @@ void echo(int connfd)
                                                             // 데이터가 더 이상 없을 때 (즉, 클라이언트가 연결을 닫았을 때), 루프는 종료
         printf("server received %d bytes\n", (int)n);       // 서버가 받은 바이트 수를 콘솔에 출력
                                                             // 서버가 얼마나 많은 데이터를 받았는지 로깅하는 데 유용
-        Rio_writen(connfd, buf, n);                         // 버퍼 buf에 저장된 데이터를 클라이언트로 다시 보낸다.
+        Rio_writen(connfd, buf, n);                         // 
+    }
 }
