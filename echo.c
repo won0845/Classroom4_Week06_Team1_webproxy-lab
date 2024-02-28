@@ -6,10 +6,12 @@ void echo(int connfd)
     char buf[MAXLINE];
     rio_t rio;
 
-    Rio_readinitb(&rio, connfd);
-    while ((n = Rio_readlineb(&rio, buf, MAXLINE)) != 0)
+    Rio_readinitb(&rio, connfd);                                 // 
+    while ((n = Rio_readlineb(&rio, buf, MAXLINE)) != 0)         // 
     {
-        printf("server received %d bytes\n", (int)n);
+        printf("server receid %d bytes\n", (int)n);
+        printf("hi");
+        printf("%s", buf); 
         Rio_writen(connfd, buf, n);
     }
 }
